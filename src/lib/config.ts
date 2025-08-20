@@ -19,15 +19,19 @@ interface Config {
   MODELS: {
     OPENAI: {
       API_KEY: string;
+      DEFAULT_MODEL: string;
     };
     GROQ: {
       API_KEY: string;
+      DEFAULT_MODEL: string;
     };
     ANTHROPIC: {
       API_KEY: string;
+      DEFAULT_MODEL: string;
     };
     GEMINI: {
       API_KEY: string;
+      DEFAULT_MODEL: string;
     };
     OLLAMA: {
       API_URL: string;
@@ -75,11 +79,19 @@ export const getKeepAlive = () => loadConfig().GENERAL.KEEP_ALIVE;
 
 export const getOpenaiApiKey = () => loadConfig().MODELS.OPENAI.API_KEY;
 
+export const getOpenaiDefaultModel = () => loadConfig().MODELS.OPENAI.DEFAULT_MODEL || 'gpt-3.5-turbo';
+
 export const getGroqApiKey = () => loadConfig().MODELS.GROQ.API_KEY;
+
+export const getGroqDefaultModel = () => loadConfig().MODELS.GROQ.DEFAULT_MODEL || 'llama-3.1-70b-versatile';
 
 export const getAnthropicApiKey = () => loadConfig().MODELS.ANTHROPIC.API_KEY;
 
+export const getAnthropicDefaultModel = () => loadConfig().MODELS.ANTHROPIC.DEFAULT_MODEL || 'claude-3-sonnet-20240229';
+
 export const getGeminiApiKey = () => loadConfig().MODELS.GEMINI.API_KEY;
+
+export const getGeminiDefaultModel = () => loadConfig().MODELS.GEMINI.DEFAULT_MODEL || 'gemini-1.5-flash';
 
 export const getSearxngApiEndpoint = () =>
   process.env.SEARXNG_API_URL || loadConfig().API_ENDPOINTS.SEARXNG;

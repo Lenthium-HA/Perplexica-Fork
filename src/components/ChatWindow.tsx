@@ -594,7 +594,7 @@ const ChatWindow = ({ id }: { id?: string }) => {
       <div>
         {messages.length > 0 ? (
           <>
-            <Navbar chatId={chatId!} messages={messages} />
+            <Navbar chatId={chatId!} messages={messages} chatModelProvider={chatModelProvider} />
             <Chat
               loading={loading}
               messages={messages}

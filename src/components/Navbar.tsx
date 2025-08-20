@@ -1,4 +1,4 @@
-import { Clock, Edit, Share, Trash, FileText, FileDown } from 'lucide-react';
+import { Clock, Edit, Share, Trash, FileText, FileDown, Cpu } from 'lucide-react';
 import { Message } from './ChatWindow';
 import { useEffect, useState, Fragment } from 'react';
 import { formatTimeDifference } from '@/lib/utils';
@@ -10,6 +10,7 @@ import {
   Transition,
 } from '@headlessui/react';
 import jsPDF from 'jspdf';
+import { PROVIDER_METADATA } from '@/lib/providers';
 
 const downloadFile = (filename: string, content: string, type: string) => {
   const blob = new Blob([content], { type });
@@ -121,9 +122,14 @@ const exportAsPDF = (messages: Message[], title: string) => {
 const Navbar = ({
   chatId,
   messages,
+  chatModelProvider,
 }: {
   messages: Message[];
   chatId: string;
+  chatModelProvider: {
+    name: string;
+    provider: string;
+  };
 }) => {
   const [title, setTitle] = useState<string>('');
   const [timeAgo, setTimeAgo] = useState<string>('');
@@ -171,6 +177,20 @@ const Navbar = ({
         <p className="text-xs">{timeAgo} ago</p>
       </div>
       <p className="hidden lg:flex">{title}</p>
+      
+      {/* Model Indicator */}
+      {chatModelProvider.name && chatModelProvider.provider && (
+        <div className="hidden lg:flex items-center space-x-1 px-2 py-1 bg-light-secondary/50 dark:bg-dark-secondary/50 rounded-md text-xs">
+          <Cpu size={12} className="text-black/60 dark:text-white/60" />
+          <span className="text-black/70 dark:text-white/70">
+            {(PROVIDER_METADATA as any)[chatModelProvider.provider]?.displayName || chatModelProvider.provider}
+          </span>
+          <span className="text-black/40 dark:text-white/40">•</span>
+          <span className="text-black/70 dark:text-white/70 font-medium">
+            {chatModelProvider.name}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-row items-center space-x-4">
         <Popover className="relative">

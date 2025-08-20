@@ -1,5 +1,5 @@
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
-import { getOpenaiApiKey } from '../config';
+import { getOpenaiApiKey, getOpenaiDefaultModel } from '../config';
 import { ChatModel, EmbeddingModel } from '.';
 
 export const PROVIDER_INFO = {
@@ -74,7 +74,8 @@ export const loadOpenAIChatModels = async () => {
 
   try {
     const chatModels: Record<string, ChatModel> = {};
-
+    const defaultModel = getOpenaiDefaultModel();
+    
     openaiChatModels.forEach((model) => {
       chatModels[model.key] = {
         displayName: model.displayName,
@@ -85,6 +86,23 @@ export const loadOpenAIChatModels = async () => {
         }) as unknown as BaseChatModel,
       };
     });
+
+    // If a default model is configured and exists, reorder models to put it first
+    if (defaultModel && chatModels[defaultModel]) {
+      const reorderedModels: Record<string, ChatModel> = {};
+      
+      // Add default model first
+      reorderedModels[defaultModel] = chatModels[defaultModel];
+      
+      // Add remaining models
+      Object.keys(chatModels).forEach((modelKey) => {
+        if (modelKey !== defaultModel) {
+          reorderedModels[modelKey] = chatModels[modelKey];
+        }
+      });
+      
+      return reorderedModels;
+    }
 
     return chatModels;
   } catch (err) {

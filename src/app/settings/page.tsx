@@ -17,9 +17,13 @@ interface SettingsType {
     [key: string]: [Record<string, any>];
   };
   openaiApiKey: string;
+  openaiDefaultModel: string;
   groqApiKey: string;
+  groqDefaultModel: string;
   anthropicApiKey: string;
+  anthropicDefaultModel: string;
   geminiApiKey: string;
+  geminiDefaultModel: string;
   ollamaApiUrl: string;
   lmStudioApiUrl: string;
   deepseekApiKey: string;
@@ -554,6 +558,102 @@ const Page = () => {
                   }}
                   onSave={(value) => saveConfig('systemInstructions', value)}
                 />
+              </div>
+            </SettingsSection>
+
+            <SettingsSection title="Default Model Settings">
+              <div className="flex flex-col space-y-4">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    OpenAI Default Model
+                  </p>
+                  <Select
+                    value={config.openaiDefaultModel || undefined}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        openaiDefaultModel: e.target.value,
+                      }));
+                      saveConfig('openaiDefaultModel', e.target.value);
+                    }}
+                    options={[
+                      { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+                      { value: 'gpt-4', label: 'GPT-4' },
+                      { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+                      { value: 'gpt-4o', label: 'GPT-4 Omni' },
+                      { value: 'gpt-4o-mini', label: 'GPT-4 Omni Mini' },
+                      { value: 'gpt-4.1-nano', label: 'GPT 4.1 Nano' },
+                      { value: 'gpt-4.1-mini', label: 'GPT 4.1 Mini' },
+                      { value: 'gpt-4.1', label: 'GPT 4.1' },
+                      { value: 'gpt-5-nano', label: 'GPT 5 Nano' },
+                      { value: 'gpt-5-mini', label: 'GPT 5 Mini' },
+                      { value: 'gpt-5', label: 'GPT 5' },
+                    ]}
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    Groq Default Model
+                  </p>
+                  <Select
+                    value={config.groqDefaultModel || undefined}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        groqDefaultModel: e.target.value,
+                      }));
+                      saveConfig('groqDefaultModel', e.target.value);
+                    }}
+                    options={[
+                      { value: 'llama-3.1-70b-versatile', label: 'Llama 3.1 70B Versatile' },
+                      { value: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B Instant' },
+                      { value: 'mixtral-8x7b-instruct', label: 'Mixtral 8x7B Instruct' },
+                    ]}
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    Anthropic Default Model
+                  </p>
+                  <Select
+                    value={config.anthropicDefaultModel || undefined}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        anthropicDefaultModel: e.target.value,
+                      }));
+                      saveConfig('anthropicDefaultModel', e.target.value);
+                    }}
+                    options={[
+                      { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+                      { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
+                      { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
+                    ]}
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <p className="text-black/70 dark:text-white/70 text-sm">
+                    Gemini Default Model
+                  </p>
+                  <Select
+                    value={config.geminiDefaultModel || undefined}
+                    onChange={(e) => {
+                      setConfig((prev) => ({
+                        ...prev!,
+                        geminiDefaultModel: e.target.value,
+                      }));
+                      saveConfig('geminiDefaultModel', e.target.value);
+                    }}
+                    options={[
+                      { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+                      { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+                      { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro' },
+                    ]}
+                  />
+                </div>
               </div>
             </SettingsSection>
 

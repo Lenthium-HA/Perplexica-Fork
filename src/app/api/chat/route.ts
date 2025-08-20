@@ -19,6 +19,10 @@ import {
   getCustomOpenaiApiKey,
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
+  getOpenaiDefaultModel,
+  getGroqDefaultModel,
+  getAnthropicDefaultModel,
+  getGeminiDefaultModel,
 } from '@/lib/config';
 import { searchHandlers } from '@/lib/search';
 
@@ -200,23 +204,49 @@ export const POST = async (req: Request) => {
       getAvailableEmbeddingModelProviders(),
     ]);
 
-    const chatModelProvider =
-      chatModelProviders[
-        body.chatModel?.provider || Object.keys(chatModelProviders)[0]
-      ];
-    const chatModel =
-      chatModelProvider[
-        body.chatModel?.name || Object.keys(chatModelProvider)[0]
-      ];
+    // Get chat model with default fallback logic
+    let selectedProvider = body.chatModel?.provider;
+    let selectedModel = body.chatModel?.name;
+    
+    if (!selectedProvider && Object.keys(chatModelProviders).length > 0) {
+      selectedProvider = Object.keys(chatModelProviders)[0];
+    }
+    
+    if (selectedProvider && chatModelProviders[selectedProvider]) {
+      const providerModels = Object.keys(chatModelProviders[selectedProvider]);
+      if (!selectedModel && providerModels.length > 0) {
+        // Use configured default model if available, otherwise use first model
+        const defaultModels = {
+          openai: getOpenaiDefaultModel(),
+          groq: getGroqDefaultModel(),
+          anthropic: getAnthropicDefaultModel(),
+          gemini: getGeminiDefaultModel(),
+        };
+        
+        selectedModel = defaultModels[selectedProvider as keyof typeof defaultModels] || providerModels[0];
+      }
+    }
 
-    const embeddingProvider =
-      embeddingModelProviders[
-        body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0]
-      ];
-    const embeddingModel =
-      embeddingProvider[
-        body.embeddingModel?.name || Object.keys(embeddingProvider)[0]
-      ];
+    const chatModelProvider = chatModelProviders[selectedProvider];
+    const chatModel = chatModelProvider?.[selectedModel];
+
+    // Get embedding model with default fallback logic
+    let selectedEmbeddingProvider = body.embeddingModel?.provider;
+    let selectedEmbeddingModel = body.embeddingModel?.name;
+    
+    if (!selectedEmbeddingProvider && Object.keys(embeddingModelProviders).length > 0) {
+      selectedEmbeddingProvider = Object.keys(embeddingModelProviders)[0];
+    }
+    
+    if (selectedEmbeddingProvider && embeddingModelProviders[selectedEmbeddingProvider]) {
+      const providerModels = Object.keys(embeddingModelProviders[selectedEmbeddingProvider]);
+      if (!selectedEmbeddingModel && providerModels.length > 0) {
+        selectedEmbeddingModel = providerModels[0];
+      }
+    }
+
+    const embeddingProvider = embeddingModelProviders[selectedEmbeddingProvider];
+    const embeddingModel = embeddingProvider?.[selectedEmbeddingModel];
 
     let llm: BaseChatModel | undefined;
     let embedding = embeddingModel.model;

@@ -1,12 +1,16 @@
 import {
   getAnthropicApiKey,
+  getAnthropicDefaultModel,
   getCustomOpenaiApiKey,
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
   getGeminiApiKey,
+  getGeminiDefaultModel,
   getGroqApiKey,
+  getGroqDefaultModel,
   getOllamaApiEndpoint,
   getOpenaiApiKey,
+  getOpenaiDefaultModel,
   getDeepseekApiKey,
   getAimlApiKey,
   getLMStudioApiEndpoint,
@@ -52,11 +56,15 @@ export const GET = async (req: Request) => {
     }
 
     config['openaiApiKey'] = getOpenaiApiKey();
+    config['openaiDefaultModel'] = getOpenaiDefaultModel();
     config['ollamaApiUrl'] = getOllamaApiEndpoint();
     config['lmStudioApiUrl'] = getLMStudioApiEndpoint();
     config['anthropicApiKey'] = getAnthropicApiKey();
+    config['anthropicDefaultModel'] = getAnthropicDefaultModel();
     config['groqApiKey'] = getGroqApiKey();
+    config['groqDefaultModel'] = getGroqDefaultModel();
     config['geminiApiKey'] = getGeminiApiKey();
+    config['geminiDefaultModel'] = getGeminiDefaultModel();
     config['deepseekApiKey'] = getDeepseekApiKey();
     config['aimlApiKey'] = getAimlApiKey();
     config['customOpenaiApiUrl'] = getCustomOpenaiApiUrl();
@@ -81,15 +89,19 @@ export const POST = async (req: Request) => {
       MODELS: {
         OPENAI: {
           API_KEY: config.openaiApiKey,
+          DEFAULT_MODEL: config.openaiDefaultModel,
         },
         GROQ: {
           API_KEY: config.groqApiKey,
+          DEFAULT_MODEL: config.groqDefaultModel,
         },
         ANTHROPIC: {
           API_KEY: config.anthropicApiKey,
+          DEFAULT_MODEL: config.anthropicDefaultModel,
         },
         GEMINI: {
           API_KEY: config.geminiApiKey,
+          DEFAULT_MODEL: config.geminiDefaultModel,
         },
         OLLAMA: {
           API_URL: config.ollamaApiUrl,
