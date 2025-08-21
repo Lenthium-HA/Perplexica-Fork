@@ -222,6 +222,16 @@ const Page = () => {
         localStorage.getItem('measureUnit')! as 'Imperial' | 'Metric',
       );
 
+      // Load optimization mode from localStorage or use server config as fallback
+      const savedOptimizationMode = localStorage.getItem('defaultOptimizationMode');
+      if (savedOptimizationMode && ['speed', 'balanced', 'quality'].includes(savedOptimizationMode)) {
+        setConfig((prev) => ({ ...prev!, defaultOptimizationMode: savedOptimizationMode as 'speed' | 'balanced' | 'quality' }));
+      } else if (data.defaultOptimizationMode) {
+        // If no localStorage value, use server config and save it to localStorage
+        localStorage.setItem('defaultOptimizationMode', data.defaultOptimizationMode);
+        setConfig((prev) => ({ ...prev!, defaultOptimizationMode: data.defaultOptimizationMode }));
+      }
+
       setIsLoading(false);
     };
 
@@ -382,6 +392,8 @@ const Page = () => {
         localStorage.setItem('systemInstructions', value);
       } else if (key === 'measureUnit') {
         localStorage.setItem('measureUnit', value.toString());
+      } else if (key === 'defaultOptimizationMode') {
+        localStorage.setItem('defaultOptimizationMode', value.toString());
       }
     } catch (err) {
       console.error('Failed to save:', err);
