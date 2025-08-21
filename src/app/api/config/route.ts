@@ -14,6 +14,7 @@ import {
   getDeepseekApiKey,
   getAimlApiKey,
   getLMStudioApiEndpoint,
+  getDefaultOptimizationMode,
   updateConfig,
 } from '@/lib/config';
 import {
@@ -70,6 +71,7 @@ export const GET = async (req: Request) => {
     config['customOpenaiApiUrl'] = getCustomOpenaiApiUrl();
     config['customOpenaiApiKey'] = getCustomOpenaiApiKey();
     config['customOpenaiModelName'] = getCustomOpenaiModelName();
+    config['defaultOptimizationMode'] = getDefaultOptimizationMode();
 
     return Response.json({ ...config }, { status: 200 });
   } catch (err) {
@@ -86,6 +88,9 @@ export const POST = async (req: Request) => {
     const config = await req.json();
 
     const updatedConfig = {
+      GENERAL: {
+        DEFAULT_OPTIMIZATION_MODE: config.defaultOptimizationMode,
+      },
       MODELS: {
         OPENAI: {
           API_KEY: config.openaiApiKey,

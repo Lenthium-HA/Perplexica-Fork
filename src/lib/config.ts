@@ -15,6 +15,7 @@ interface Config {
   GENERAL: {
     SIMILARITY_MEASURE: string;
     KEEP_ALIVE: string;
+    DEFAULT_OPTIMIZATION_MODE: 'speed' | 'balanced' | 'quality';
   };
   MODELS: {
     OPENAI: {
@@ -76,6 +77,9 @@ export const getSimilarityMeasure = () =>
   loadConfig().GENERAL.SIMILARITY_MEASURE;
 
 export const getKeepAlive = () => loadConfig().GENERAL.KEEP_ALIVE;
+
+export const getDefaultOptimizationMode = () =>
+  loadConfig().GENERAL.DEFAULT_OPTIMIZATION_MODE || 'speed';
 
 export const getOpenaiApiKey = () => loadConfig().MODELS.OPENAI.API_KEY;
 

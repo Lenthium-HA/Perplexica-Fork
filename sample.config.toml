@@ -1,6 +1,7 @@
 [GENERAL]
 SIMILARITY_MEASURE = "cosine" # "cosine" or "dot"
 KEEP_ALIVE = "5m" # How long to keep Ollama models loaded into memory. (Instead of using -1 use "-1m")
+DEFAULT_OPTIMIZATION_MODE = "speed" # Default: speed, Options: speed, balanced, quality
 
 [MODELS.OPENAI]
 API_KEY = ""
@@ -36,4 +37,4 @@ API_KEY = "" # Required to use AI/ML API chat and embedding models
 API_URL = "" # LM Studio API URL - http://host.docker.internal:1234
 
 [API_ENDPOINTS]
-SEARXNG = "" # SearxNG API URL - http://localhost:32768
+SEARXNG = "" # SearxNG API URL - http://localhost:32768 or http://192.168.1.69:8080

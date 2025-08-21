@@ -31,6 +31,7 @@ interface SettingsType {
   customOpenaiApiKey: string;
   customOpenaiApiUrl: string;
   customOpenaiModelName: string;
+  defaultOptimizationMode: 'speed' | 'balanced' | 'quality';
 }
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -455,6 +456,26 @@ const Page = () => {
                       label: 'Imperial',
                       value: 'Imperial',
                     },
+                  ]}
+                />
+              </div>
+              <div className="flex flex-col space-y-1">
+                <p className="text-black/70 dark:text-white/70 text-sm">
+                  Default Search Optimization
+                </p>
+                <Select
+                  value={config?.defaultOptimizationMode || 'speed'}
+                  onChange={(e) => {
+                    setConfig((prev) => ({
+                      ...prev!,
+                      defaultOptimizationMode: e.target.value as 'speed' | 'balanced' | 'quality',
+                    }));
+                    saveConfig('defaultOptimizationMode', e.target.value);
+                  }}
+                  options={[
+                    { value: 'speed', label: 'Speed - Fastest response' },
+                    { value: 'balanced', label: 'Balanced - Speed vs accuracy' },
+                    { value: 'quality', label: 'Quality - Most thorough analysis' },
                   ]}
                 />
               </div>

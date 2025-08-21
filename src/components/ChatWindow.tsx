@@ -310,6 +310,14 @@ const ChatWindow = ({ id }: { id?: string }) => {
   const [focusMode, setFocusMode] = useState('webSearch');
   const [optimizationMode, setOptimizationMode] = useState('speed');
 
+  useEffect(() => {
+    // Load saved optimization mode from localStorage
+    const savedOptimizationMode = localStorage.getItem('defaultOptimizationMode');
+    if (savedOptimizationMode && ['speed', 'balanced', 'quality'].includes(savedOptimizationMode)) {
+      setOptimizationMode(savedOptimizationMode);
+    }
+  }, []);
+
   const [isMessagesLoaded, setIsMessagesLoaded] = useState(false);
 
   const [notFound, setNotFound] = useState(false);
