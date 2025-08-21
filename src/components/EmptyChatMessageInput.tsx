@@ -7,6 +7,11 @@ import Optimization from './MessageInputActions/Optimization';
 import Attach from './MessageInputActions/Attach';
 import { File } from './ChatWindow';
 
+interface ChatModelProvider {
+  name: string;
+  provider: string;
+}
+
 const EmptyChatMessageInput = ({
   sendMessage,
   focusMode,
@@ -17,6 +22,7 @@ const EmptyChatMessageInput = ({
   setFileIds,
   files,
   setFiles,
+  chatModelProvider,
 }: {
   sendMessage: (message: string) => void;
   focusMode: string;
@@ -27,6 +33,7 @@ const EmptyChatMessageInput = ({
   setFileIds: (fileIds: string[]) => void;
   files: File[];
   setFiles: (files: File[]) => void;
+  chatModelProvider: ChatModelProvider;
 }) => {
   const [copilotEnabled, setCopilotEnabled] = useState(false);
   const [message, setMessage] = useState('');
@@ -92,6 +99,9 @@ const EmptyChatMessageInput = ({
               setFiles={setFiles}
               showText
             />
+            <div className="text-xs text-black/60 dark:text-white/60 bg-light-primary dark:bg-dark-primary px-2 py-1 rounded-md whitespace-nowrap">
+              {chatModelProvider.provider} • {chatModelProvider.name}
+            </div>
           </div>
           <div className="flex flex-row items-center space-x-1 sm:space-x-4">
             <Optimization

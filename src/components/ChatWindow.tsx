@@ -626,6 +626,7 @@ const ChatWindow = ({ id }: { id?: string }) => {
             setFileIds={setFileIds}
             files={files}
             setFiles={setFiles}
+            chatModelProvider={chatModelProvider}
           />
         )}
       </div>

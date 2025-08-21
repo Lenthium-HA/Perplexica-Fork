@@ -15,6 +15,7 @@ const EmptyChat = ({
   setFileIds,
   files,
   setFiles,
+  chatModelProvider,
 }: {
   sendMessage: (message: string) => void;
   focusMode: string;
@@ -25,6 +26,10 @@ const EmptyChat = ({
   setFileIds: (fileIds: string[]) => void;
   files: File[];
   setFiles: (files: File[]) => void;
+  chatModelProvider: {
+    name: string;
+    provider: string;
+  };
 }) => {
   return (
     <div className="relative">
@@ -48,6 +53,7 @@ const EmptyChat = ({
             setFileIds={setFileIds}
             files={files}
             setFiles={setFiles}
+            chatModelProvider={chatModelProvider}
           />
         </div>
         <div className="flex flex-col w-full gap-4 mt-2 sm:flex-row sm:justify-center">
