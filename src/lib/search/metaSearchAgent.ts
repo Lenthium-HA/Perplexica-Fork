@@ -25,6 +25,8 @@ import computeSimilarity from '../utils/computeSimilarity';
 import formatChatHistoryAsString from '../utils/formatHistory';
 import eventEmitter from 'events';
 import { StreamEvent } from '@langchain/core/tracers/log_stream';
+import QueryEnhancer, { type QueryExpansion } from '../utils/queryEnhancer';
+import { queryClassifier } from '../utils/queryClassifier';
 
 export interface MetaSearchAgentType {
   searchAndAnswer: (
@@ -56,9 +58,83 @@ type BasicChainInput = {
 class MetaSearchAgent implements MetaSearchAgentType {
   private config: Config;
   private strParser = new StringOutputParser();
+  private queryEnhancer: QueryEnhancer | null = null;
 
   constructor(config: Config) {
     this.config = config;
+  }
+
+  /**
+   * Initialize query enhancer with embeddings and LLM
+   */
+  private initializeQueryEnhancer(embeddings: Embeddings, llm: BaseChatModel) {
+    if (!this.queryEnhancer) {
+      this.queryEnhancer = new QueryEnhancer(embeddings, llm);
+    }
+  }
+
+  /**
+   * Enhance query using the query enhancer
+   */
+  private async enhanceQuery(
+    query: string,
+    history: BaseMessage[],
+    embeddings: Embeddings,
+    llm: BaseChatModel,
+    optimizationMode: 'speed' | 'balanced' | 'quality'
+  ): Promise<{ enhancedQuery: string; queryExpansion: QueryExpansion | null }> {
+    if (!this.queryEnhancer) {
+      this.initializeQueryEnhancer(embeddings, llm);
+    }
+
+    if (!this.queryEnhancer) {
+      return { enhancedQuery: query, queryExpansion: null };
+    }
+
+    try {
+      // Convert chat history to strings for the enhancer
+      const chatHistoryStrings = history.map(msg =>
+        msg.content instanceof Array ? msg.content.join('') : String(msg.content)
+      );
+      
+      // For speed mode, skip query enhancement entirely for maximum performance
+      if (optimizationMode === 'speed') {
+        console.log(`[Speed Mode] Skipping query enhancement for maximum performance: "${query}"`);
+        return { enhancedQuery: query, queryExpansion: null };
+      }
+      
+      // For balanced mode, use intelligent query classification
+      if (optimizationMode === 'balanced') {
+        const classification = queryClassifier.classify(query);
+        
+        if (!classification.needsEnhancement) {
+          console.log(`[QueryClassifier] Using fast path for query: "${query}" (${classification.reason}, confidence: ${classification.confidence})`);
+          // For simple queries, use speed mode enhancement to avoid expensive LLM calls
+          const queryExpansion = await this.queryEnhancer.enhanceQuerySpeed(query, chatHistoryStrings);
+          const enhancedQuery = queryExpansion.expandedQueries[0] || query;
+          return { enhancedQuery, queryExpansion };
+        } else {
+          console.log(`[QueryClassifier] Using full enhancement for query: "${query}" (${classification.reason}, confidence: ${classification.confidence})`);
+        }
+      }
+      
+      // Get mode-specific configuration for balanced and quality modes
+      const modeConfig = this.queryEnhancer.getModeConfig(optimizationMode);
+      
+      // Apply mode-specific configuration
+      this.queryEnhancer = new QueryEnhancer(embeddings, llm, modeConfig);
+      
+      // Enhance the query
+      const queryExpansion = await this.queryEnhancer.enhanceQuery(query, chatHistoryStrings);
+      
+      // Use the first enhanced query (or original if no enhancement)
+      const enhancedQuery = queryExpansion.expandedQueries[0] || query;
+      
+      return { enhancedQuery, queryExpansion };
+    } catch (error) {
+      console.error('Query enhancement failed:', error);
+      return { enhancedQuery: query, queryExpansion: null };
+    }
   }
 
   private async createSearchRetrieverChain(llm: BaseChatModel, optimizationMode: 'speed' | 'balanced' | 'quality') {
@@ -251,7 +327,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
             
             documents = [...enhancedDocs, ...remainingDocs];
           } else {
-            // Speed mode: use existing behavior with all results
+            // Speed mode: use existing behavior with all results but skip summarization
             documents = res.results.map((result) =>
               new Document({
                 pageContent:
@@ -295,7 +371,18 @@ class MetaSearchAgent implements MetaSearchAgentType {
           let docs: Document[] | null = null;
           let query = input.query;
 
+          // Apply query enhancement preprocessing
           if (this.config.searchWeb) {
+            const { enhancedQuery, queryExpansion } = await this.enhanceQuery(
+              query,
+              input.chat_history,
+              embeddings,
+              llm,
+              optimizationMode
+            );
+
+            query = enhancedQuery;
+
             const searchRetrieverChain =
               await this.createSearchRetrieverChain(llm, optimizationMode);
 
@@ -378,7 +465,22 @@ class MetaSearchAgent implements MetaSearchAgentType {
       (doc) => doc.pageContent && doc.pageContent.length > 0,
     );
 
-    if (optimizationMode === 'speed' || this.config.rerank === false) {
+    if (optimizationMode === 'speed') {
+      // Speed mode: skip reranking entirely for maximum performance
+      if (filesData.length > 0) {
+        const fileDocs = filesData.map((fileData) => {
+          return new Document({
+            pageContent: fileData.content,
+            metadata: {
+              title: fileData.fileName,
+              url: `File`,
+            },
+          });
+        });
+        return [...fileDocs.slice(0, 8), ...docsWithContent.slice(0, 7)];
+      }
+      return docsWithContent.slice(0, 15);
+    } else if (this.config.rerank === false) {
       if (filesData.length > 0) {
         const [queryEmbedding] = await Promise.all([
           embeddings.embedQuery(query),
@@ -422,6 +524,28 @@ class MetaSearchAgent implements MetaSearchAgentType {
         return docsWithContent.slice(0, 15);
       }
     } else if (optimizationMode === 'balanced') {
+      // For balanced mode, check if this is a simple query that can skip reranking
+      const classification = queryClassifier.classify(query);
+      
+      if (!classification.needsEnhancement) {
+        console.log(`[QueryClassifier] Skipping reranking for simple query: "${query}" (${classification.reason})`);
+        // Simple queries: just return docs in order, prioritize files
+        if (filesData.length > 0) {
+          const fileDocs = filesData.map((fileData) => {
+            return new Document({
+              pageContent: fileData.content,
+              metadata: {
+                title: fileData.fileName,
+                url: `File`,
+              },
+            });
+          });
+          return [...fileDocs.slice(0, 8), ...docsWithContent.slice(0, 7)];
+        }
+        return docsWithContent.slice(0, 15);
+      }
+      
+      // Complex queries: use full reranking
       const [docEmbeddings, queryEmbedding] = await Promise.all([
         embeddings.embedDocuments(
           docsWithContent.map((doc) => doc.pageContent),

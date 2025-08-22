@@ -16,6 +16,15 @@ interface Config {
     SIMILARITY_MEASURE: string;
     KEEP_ALIVE: string;
     DEFAULT_OPTIMIZATION_MODE: 'speed' | 'balanced' | 'quality';
+    QUERY_ENHANCEMENT: {
+      ENABLED: boolean;
+      MAX_EXPANDED_QUERIES: number;
+      EXPANSION_DEPTH: 'lightweight' | 'moderate' | 'deep';
+      CONTEXT_ANALYSIS_DEPTH: number;
+      INTENT_CLASSIFICATION_THRESHOLD: number;
+      ENABLE_SEMANTIC_EXPANSION: boolean;
+      ENABLE_CONTEXT_REFINEMENT: boolean;
+    };
   };
   MODELS: {
     OPENAI: {
@@ -80,6 +89,31 @@ export const getKeepAlive = () => loadConfig().GENERAL.KEEP_ALIVE;
 
 export const getDefaultOptimizationMode = () =>
   loadConfig().GENERAL.DEFAULT_OPTIMIZATION_MODE || 'speed';
+
+export interface QueryEnhancementConfig {
+  enableIntelligentClassification: boolean;
+  classificationSensitivity: 'conservative' | 'balanced' | 'aggressive';
+  minimumQueryLength: number;
+  maximumSimpleQueryLength: number;
+  fastPathConfidenceThreshold: number;
+  enableFastPathReranking: boolean;
+  logClassificationDecisions: boolean;
+}
+
+export const getQueryEnhancementConfig = (): QueryEnhancementConfig => ({
+  enableIntelligentClassification: true,
+  classificationSensitivity: 'balanced',
+  minimumQueryLength: 3,
+  maximumSimpleQueryLength: 12,
+  fastPathConfidenceThreshold: 0.7,
+  enableFastPathReranking: false,
+  logClassificationDecisions: true,
+});
+
+export const updateQueryEnhancementConfig = (config: Partial<QueryEnhancementConfig>) => {
+  // For now, we'll just log the update. In a real implementation, this would update the config file.
+  console.log('Query enhancement config update:', config);
+};
 
 export const getOpenaiApiKey = () => loadConfig().MODELS.OPENAI.API_KEY;
 
