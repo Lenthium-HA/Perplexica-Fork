@@ -16,6 +16,7 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import LineListOutputParser from '../outputParsers/listLineOutputParser';
 import LineOutputParser from '../outputParsers/lineOutputParser';
 import { getDocumentsFromLinks } from '../utils/documents';
+import { getEnhancedDocumentsFromLinks } from '../utils/enhancedDocuments';
 import { Document } from 'langchain/document';
 import { searchSearxng } from '../searxng';
 import path from 'node:path';
@@ -60,7 +61,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     this.config = config;
   }
 
-  private async createSearchRetrieverChain(llm: BaseChatModel) {
+  private async createSearchRetrieverChain(llm: BaseChatModel, optimizationMode: 'speed' | 'balanced' | 'quality') {
     (llm as unknown as ChatOpenAI).temperature = 0;
 
     return RunnableSequence.from([
@@ -92,7 +93,10 @@ class MetaSearchAgent implements MetaSearchAgentType {
 
           let docs: Document[] = [];
 
-          const linkDocs = await getDocumentsFromLinks({ links });
+          // Use enhanced document processing for balanced mode
+          const linkDocs = optimizationMode === 'balanced'
+            ? await getEnhancedDocumentsFromLinks({ links })
+            : await getDocumentsFromLinks({ links });
 
           const docGroups: Document[] = [];
 
@@ -210,8 +214,27 @@ class MetaSearchAgent implements MetaSearchAgentType {
             engines: this.config.activeEngines,
           });
 
-          const documents = res.results.map(
-            (result) =>
+          let documents: Document[] = [];
+
+          if (optimizationMode === 'balanced') {
+            // Balanced mode: crawl top 5 results with enhanced processing, then use speed logic for rest
+            const topResults = res.results.slice(0, 5);
+            const remainingResults = res.results.slice(5);
+            
+            // Enhanced crawling for top 5 results
+            const enhancedDocs = topResults.map((result) => {
+              return new Document({
+                pageContent: result.content || '',
+                metadata: {
+                  title: result.title,
+                  url: result.url,
+                  ...(result.img_src && { img_src: result.img_src }),
+                },
+              });
+            });
+            
+            // Use speed mode logic for remaining results
+            const remainingDocs = remainingResults.map((result) =>
               new Document({
                 pageContent:
                   result.content ||
@@ -224,7 +247,26 @@ class MetaSearchAgent implements MetaSearchAgentType {
                   ...(result.img_src && { img_src: result.img_src }),
                 },
               }),
-          );
+            );
+            
+            documents = [...enhancedDocs, ...remainingDocs];
+          } else {
+            // Speed mode: use existing behavior with all results
+            documents = res.results.map((result) =>
+              new Document({
+                pageContent:
+                  result.content ||
+                  (this.config.activeEngines.includes('youtube')
+                    ? result.title
+                    : '') /* Todo: Implement transcript grabbing using Youtubei (source: https://www.npmjs.com/package/youtubei) */,
+                metadata: {
+                  title: result.title,
+                  url: result.url,
+                  ...(result.img_src && { img_src: result.img_src }),
+                },
+              }),
+            );
+          }
 
           return { query: question, docs: documents };
         }
@@ -255,7 +297,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
 
           if (this.config.searchWeb) {
             const searchRetrieverChain =
-              await this.createSearchRetrieverChain(llm);
+              await this.createSearchRetrieverChain(llm, optimizationMode);
 
             const searchRetrieverResult = await searchRetrieverChain.invoke({
               chat_history: processedHistory,
