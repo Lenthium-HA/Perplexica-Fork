@@ -2,6 +2,12 @@ FROM node:20.18.0-slim AS builder
 
 WORKDIR /home/perplexica
 
+# Install build dependencies for native modules
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy package files
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 600000
@@ -17,14 +23,56 @@ COPY public ./public
 RUN mkdir -p /home/perplexica/data
 RUN yarn build
 
-# Build migrator
-RUN yarn add --dev @vercel/ncc
-RUN yarn ncc build ./src/lib/db/migrate.ts -o migrator
+# Create migrator script directly (no bundling needed)
+RUN echo 'const { drizzle } = require("drizzle-orm/better-sqlite3");' > ./migrate.js
+RUN echo 'const { migrate } = require("drizzle-orm/better-sqlite3/migrator");' >> ./migrate.js
+RUN echo 'const { sqliteTable, integer, text } = require("drizzle-orm/sqlite-core");' >> ./migrate.js
+RUN echo 'const { sql } = require("drizzle-orm");' >> ./migrate.js
+RUN echo 'const path = require("path");' >> ./migrate.js
+RUN echo 'const Database = require("better-sqlite3");' >> ./migrate.js
+RUN echo '' >> ./migrate.js
+RUN echo '// Define schema' >> ./migrate.js
+RUN echo 'const messages = sqliteTable("messages", {' >> ./migrate.js
+RUN echo '  id: integer("id").primaryKey(),' >> ./migrate.js
+RUN echo '  content: text("content").notNull(),' >> ./migrate.js
+RUN echo '  chatId: text("chatId").notNull(),' >> ./migrate.js
+RUN echo '  messageId: text("messageId").notNull(),' >> ./migrate.js
+RUN echo '  role: text("type", { enum: ["assistant", "user"] }),' >> ./migrate.js
+RUN echo '  metadata: text("metadata", { mode: "json" }),' >> ./migrate.js
+RUN echo '});' >> ./migrate.js
+RUN echo '' >> ./migrate.js
+RUN echo 'const chats = sqliteTable("chats", {' >> ./migrate.js
+RUN echo '  id: text("id").primaryKey(),' >> ./migrate.js
+RUN echo '  title: text("title").notNull(),' >> ./migrate.js
+RUN echo '  createdAt: text("createdAt").notNull(),' >> ./migrate.js
+RUN echo '  focusMode: text("focusMode").notNull(),' >> ./migrate.js
+RUN echo '  files: text("files", { mode: "json" }).default(sql("''[]''")),' >> ./migrate.js
+RUN echo '});' >> ./migrate.js
+RUN echo '' >> ./migrate.js
+RUN echo 'const schema = { messages, chats };' >> ./migrate.js
+RUN echo '' >> ./migrate.js
+RUN echo '// Initialize database connection' >> ./migrate.js
+RUN echo 'const DATA_DIR = process.env.DATA_DIR || "/home/perplexica/data";' >> ./migrate.js
+RUN echo 'const sqlite = new Database(path.join(DATA_DIR, "db.sqlite"));' >> ./migrate.js
+RUN echo 'const db = drizzle(sqlite, { schema });' >> ./migrate.js
+RUN echo '' >> ./migrate.js
+RUN echo '// Run migration' >> ./migrate.js
+RUN echo 'migrate(db, { migrationsFolder: path.join(__dirname, "drizzle") });' >> ./migrate.js
 
 # Production stage
 FROM node:20.18.0-slim
 
 WORKDIR /home/perplexica
+
+# Install runtime dependencies for database migrations
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package.json and install production dependencies
+COPY package.json ./
+RUN npm install --omit=dev --ignore-scripts
 
 # Copy built assets
 COPY --from=builder /home/perplexica/public ./public
@@ -32,8 +80,7 @@ COPY --from=builder /home/perplexica/.next/static ./public/_next/static
 COPY --from=builder /home/perplexica/.next/standalone ./
 COPY --from=builder /home/perplexica/data ./data
 COPY drizzle ./drizzle
-COPY --from=builder /home/perplexica/migrator/build ./build
-COPY --from=builder /home/perplexica/migrator/index.js ./migrate.js
+COPY --from=builder /home/perplexica/migrate.js ./
 
 # Create uploads directory
 RUN mkdir /home/perplexica/uploads
