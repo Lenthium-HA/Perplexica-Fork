@@ -62,9 +62,13 @@ const handleEmitterEvents = async (
   encoder: TextEncoder,
   aiMessageId: string,
   chatId: string,
+  startTime: number,
+  searchStartTime: number,
 ) => {
   let recievedMessage = '';
   let sources: any[] = [];
+  let reasoning: string = '';
+  let searchEndTime: number;
 
   stream.on('data', (data) => {
     const parsedData = JSON.parse(data);
@@ -92,14 +96,24 @@ const handleEmitterEvents = async (
       );
 
       sources = parsedData.data;
+      searchEndTime = Date.now();
+    } else if (parsedData.type === 'reasoning') {
+      reasoning = parsedData.data;
     }
   });
   stream.on('end', () => {
+    const endTime = Date.now();
+    const searchTime = searchEndTime ? searchEndTime - searchStartTime : 0;
+    const processingTime = endTime - (searchEndTime || searchStartTime);
+    
     writer.write(
       encoder.encode(
         JSON.stringify({
           type: 'messageEnd',
           messageId: aiMessageId,
+          searchTime,
+          processingTime,
+          reasoning,
         }) + '\n',
       ),
     );
@@ -114,6 +128,9 @@ const handleEmitterEvents = async (
         metadata: JSON.stringify({
           createdAt: new Date(),
           ...(sources && sources.length > 0 && { sources }),
+          searchTime,
+          processingTime,
+          reasoning,
         }),
       })
       .execute();
@@ -316,7 +333,9 @@ export const POST = async (req: Request) => {
     const writer = responseStream.writable.getWriter();
     const encoder = new TextEncoder();
 
-    handleEmitterEvents(stream, writer, encoder, aiMessageId, message.chatId);
+    const startTime = Date.now();
+    const searchStartTime = Date.now();
+    handleEmitterEvents(stream, writer, encoder, aiMessageId, message.chatId, startTime, searchStartTime);
     handleHistorySave(message, humanMessageId, body.focusMode, body.files);
 
     return new Response(responseStream.readable, {

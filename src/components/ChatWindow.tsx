@@ -21,6 +21,9 @@ export type Message = {
   role: 'user' | 'assistant';
   suggestions?: string[];
   sources?: Document[];
+  processingTime?: number;
+  searchTime?: number;
+  reasoning?: string;
 };
 
 export interface File {
@@ -474,6 +477,21 @@ const ChatWindow = ({ id }: { id?: string }) => {
             .getElementById(`search-videos-${lastMsg.messageId}`)
             ?.click();
         }
+
+        // Update the message with timing and reasoning data
+        setMessages((prev) =>
+          prev.map((msg) => {
+            if (msg.messageId === data.messageId) {
+              return {
+                ...msg,
+                searchTime: data.searchTime,
+                processingTime: data.processingTime,
+                reasoning: data.reasoning,
+              };
+            }
+            return msg;
+          }),
+        );
 
         if (
           lastMsg.role === 'assistant' &&

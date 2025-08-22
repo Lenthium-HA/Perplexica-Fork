@@ -20,6 +20,7 @@ import SearchImages from './SearchImages';
 import SearchVideos from './SearchVideos';
 import { useSpeech } from 'react-text-to-speech';
 import ThinkBox from './ThinkBox';
+import MessageInfo from './MessageInfo';
 
 const ThinkTagProcessor = ({
   children,
@@ -202,6 +203,14 @@ const MessageBox = ({
                       <Share size={18} />
                     </button> */}
                     <Rewrite rewrite={rewrite} messageId={message.messageId} />
+                    {message.role === 'assistant' && (
+                      <MessageInfo
+                        searchTime={message.searchTime}
+                        processingTime={message.processingTime}
+                        reasoning={message.reasoning}
+                        sourcesCount={message.sources?.length || 0}
+                      />
+                    )}
                   </div>
                   <div className="flex flex-row items-center space-x-1">
                     <Copy initialMessage={message.content} message={message} />
